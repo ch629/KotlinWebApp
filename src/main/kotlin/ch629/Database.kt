@@ -19,12 +19,12 @@ object Comments : Table() {
 }
 
 fun initDatabase() {
-    Database.connect("jdbc:h2:mem:accounts", driver = "org.h2.Driver")
+    Database.connect("jdbc:h2:accounts", driver = "org.h2.Driver")
 
     transaction {
         create(Users, Comments)
         val name = "root"
-        val pass = "4813494d137e1631bba301d5acab6e7bb7aa74ce1185d456565ef51d737677b2" //SHA256 of root
+        val pass = "root" //Would be hashed in a real example
         val text = "Lipsum..."
 
         Users.insert {

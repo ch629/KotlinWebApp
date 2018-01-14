@@ -35,6 +35,7 @@ dependencies {
     compile "io.ktor:ktor-server-core:$ktor_version"
     compile "io.ktor:ktor-server-netty:$ktor_version"
     compile "io.ktor:ktor-html-builder:0.9.1-alpha-8"
+    compile "io.ktor:ktor-auth:0.9.1-alpha-8"
 
     compile "org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.8"
     compile 'org.jetbrains.exposed:exposed:0.9.1'
