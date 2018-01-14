@@ -2,6 +2,7 @@ package ch629
 
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils.create
+import org.jetbrains.exposed.sql.SchemaUtils.drop
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
@@ -22,6 +23,7 @@ fun initDatabase() {
     Database.connect("jdbc:h2:accounts", driver = "org.h2.Driver")
 
     transaction {
+        drop(Users, Comments)
         create(Users, Comments)
         val name = "root"
         val pass = "root" //Would be hashed in a real example

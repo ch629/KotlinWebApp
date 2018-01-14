@@ -1,5 +1,7 @@
 package ch629
 
+import ch629.Comments.comment
+import ch629.Comments.user
 import io.ktor.application.Application
 import io.ktor.application.call
 import io.ktor.application.install
@@ -15,6 +17,7 @@ import io.ktor.routing.routing
 import kotlinx.html.*
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Application.main() {
@@ -75,6 +78,23 @@ fun Application.main() {
                 }
             }
         }
+
+        get("/comments") {
+            call.respondHtml {
+                head { +"Comments" }
+                body {
+                    findAllComments().forEach {
+                        commentWidget(it)
+                    }
+                }
+            }
+
+            TODO("The rest of the comments page")
+        }
+
+        route("/postComment") {
+            TODO()
+        }
     }
 }
 
@@ -88,6 +108,31 @@ fun validLogin(name: String, pass: String): Boolean {
     return found
 }
 
+data class Comment(val name: String, val comment: String)
+
+fun findAllComments(): Array<Comment> {
+    var comments: List<Comment> = emptyList()
+
+    transaction {
+        comments = Comments.selectAll().map { Comment(it[user], it[comment]) }
+    }
+
+    return comments.toTypedArray()
+}
+
 fun FlowContent.widget(body: FlowContent.() -> Unit) {
     div { body() }
+}
+
+fun FlowContent.commentWidget(comment: Comment) {
+    div("comment-block") {
+        div("comment-name") {
+            comment.name
+        }
+
+        div("comment-text") {
+            comment.comment
+        }
+    }
+    TODO("Each comment block") //TODO: Might just need to do the CSS & JS for this
 }
