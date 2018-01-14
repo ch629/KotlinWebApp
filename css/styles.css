@@ -1,0 +1,8 @@
+body {
+    background-color: darkgray;
+}
+
+.comment {
+    padding-left: 2em;
+    padding-bottom: 1em;
+}

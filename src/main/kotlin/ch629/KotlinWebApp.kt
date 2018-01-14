@@ -6,11 +6,12 @@ import io.ktor.application.Application
 import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.auth.*
+import io.ktor.content.files
+import io.ktor.content.static
 import io.ktor.features.CallLogging
 import io.ktor.features.DefaultHeaders
 import io.ktor.html.respondHtml
-import io.ktor.http.ContentType
-import io.ktor.response.respondText
+import io.ktor.response.respondRedirect
 import io.ktor.routing.get
 import io.ktor.routing.route
 import io.ktor.routing.routing
@@ -27,6 +28,11 @@ fun Application.main() {
     install(CallLogging)
 
     routing {
+        static("static") {
+            files("css")
+            files("js")
+        }
+
         route("/authenticate") {
             authentication {
                 formAuthentication("user", "pass", challenge = FormAuthChallenge.Redirect({ _, _ -> "/login" })) { credential: UserPasswordCredential ->
@@ -38,8 +44,7 @@ fun Application.main() {
             }
 
             handle {
-                val principle = call.authentication.principal<UserIdPrincipal>()
-                call.respondText("Hello, ${principle?.name}", ContentType.Text.Html)
+                call.respondRedirect("/comments") //TODO: Redirect to postComment when implemented
             }
         }
 
@@ -69,6 +74,7 @@ fun Application.main() {
             call.respondHtml {
                 head {
                     title { +"Testing Site" }
+                    addStyles()
                 }
                 body {
                     h1 { +"Sample application with HTML builders" }
@@ -81,20 +87,21 @@ fun Application.main() {
 
         get("/comments") {
             call.respondHtml {
-                head { +"Comments" }
+                head {
+                    title { +"Comments" }
+                    addStyles()
+                }
                 body {
-                    findAllComments().forEach {
-                        commentWidget(it)
-                    }
+                    val comments = findAllComments()
+                    if (comments.isEmpty()) +"No Comments Found."
+                    else div("comments") { comments.forEach { commentWidget(it) } }
                 }
             }
-
-            TODO("The rest of the comments page")
         }
 
-        route("/postComment") {
+        /*route("/postComment") {
             TODO()
-        }
+        }*/
     }
 }
 
@@ -124,15 +131,20 @@ fun FlowContent.widget(body: FlowContent.() -> Unit) {
     div { body() }
 }
 
+fun HEAD.addStyles() {
+    styleLink("https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css")
+    styleLink("static/styles.css")
+    styleLink("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css")
+}
+
 fun FlowContent.commentWidget(comment: Comment) {
-    div("comment-block") {
-        div("comment-name") {
-            comment.name
+    div("row comment") {
+        div("col-2 comment-name") {
+            +comment.name
         }
 
-        div("comment-text") {
-            comment.comment
+        div("col-8 comment-text") {
+            +comment.comment
         }
     }
-    TODO("Each comment block") //TODO: Might just need to do the CSS & JS for this
 }
