@@ -11,6 +11,8 @@ import io.ktor.routing.routing
 import kotlinx.html.*
 
 fun Application.main() {
+    initDatabase()
+
     install(DefaultHeaders)
     install(CallLogging)
     routing {
