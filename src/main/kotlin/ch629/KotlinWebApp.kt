@@ -3,6 +3,7 @@ package ch629
 import ch629.Comments.comment
 import ch629.Comments.user
 import io.ktor.application.Application
+import io.ktor.application.ApplicationCall
 import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.auth.*
@@ -15,6 +16,8 @@ import io.ktor.response.respondRedirect
 import io.ktor.routing.get
 import io.ktor.routing.route
 import io.ktor.routing.routing
+import io.ktor.sessions.*
+import io.ktor.util.hex
 import kotlinx.html.*
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
@@ -23,9 +26,15 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Application.main() {
     initDatabase()
+    val sessionKey = hex("03e156f6058a13813816065")
 
     install(DefaultHeaders)
     install(CallLogging)
+    install(Sessions) {
+        cookie<LoginSession>("SESSION") {
+            transform(SessionTransportTransformerMessageAuthentication(sessionKey))
+        }
+    }
 
     routing {
         static("static") {
@@ -44,26 +53,31 @@ fun Application.main() {
             }
 
             handle {
+                val principle = call.authentication.principal<UserIdPrincipal>()
+                call.sessions.set(LoginSession(principle!!.name))
                 call.respondRedirect("/comments") //TODO: Redirect to postComment when implemented
             }
         }
 
         get("/login") {
             call.respondHtml {
+                head { addStyles() }
                 body {
                     form(action = "/authenticate", encType = FormEncType.applicationXWwwFormUrlEncoded, method = FormMethod.post) {
-                        p {
-                            +"user:"
-                            textInput(name = "user")
-                        }
+                        div("form-group") {
+                            p {
+                                +"user:"
+                                textInput(name = "user", classes = "form-control")
+                            }
 
-                        p {
-                            +"password:"
-                            passwordInput(name = "pass")
-                        }
+                            p {
+                                +"password:"
+                                passwordInput(name = "pass", classes = "form-control")
+                            }
 
-                        p {
-                            submitInput { value = "Login" }
+                            p {
+                                submitInput(classes = "btn btn-primary") { value = "Login" }
+                            }
                         }
                     }
                 }
@@ -86,6 +100,9 @@ fun Application.main() {
         }
 
         get("/comments") {
+            if (!checkLoggedIn(call)) println("Not Logged In")
+            else println("Logged In")
+
             call.respondHtml {
                 head {
                     title { +"Comments" }
@@ -148,3 +165,7 @@ fun FlowContent.commentWidget(comment: Comment) {
         }
     }
 }
+
+fun checkLoggedIn(call: ApplicationCall): Boolean = call.sessions.get<LoginSession>() != null //This would usually be done with a session id connected to the database
+
+data class LoginSession(val name: String)
