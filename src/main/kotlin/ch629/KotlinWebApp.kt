@@ -12,14 +12,18 @@ import io.ktor.content.static
 import io.ktor.features.CallLogging
 import io.ktor.features.DefaultHeaders
 import io.ktor.html.respondHtml
+import io.ktor.request.receive
 import io.ktor.response.respondRedirect
 import io.ktor.routing.get
+import io.ktor.routing.post
 import io.ktor.routing.route
 import io.ktor.routing.routing
 import io.ktor.sessions.*
+import io.ktor.util.ValuesMap
 import io.ktor.util.hex
 import kotlinx.html.*
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -100,7 +104,7 @@ fun Application.main() {
         }
 
         get("/comments") {
-            if (!checkLoggedIn(call)) println("Not Logged In")
+            if (!call.isLoggedIn()) println("Not Logged In")
             else println("Logged In")
 
             call.respondHtml {
@@ -116,9 +120,58 @@ fun Application.main() {
             }
         }
 
-        /*route("/postComment") {
-            TODO()
-        }*/
+        get("/postComment") {
+            if (!call.isLoggedIn()) call.respondRedirect("/login")
+            else {
+                call.respondHtml {
+                    head {
+                        title { +"Post Comment" }
+                        addStyles()
+                    }
+
+                    body {
+                        form(action = "/postComment", encType = FormEncType.applicationXWwwFormUrlEncoded, method = FormMethod.post) {
+                            div("form-group") {
+                                p {
+                                    div("row") {
+                                        div("col-1") {
+                                            +"Comment:"
+                                        }
+                                        div("col-10") {
+                                            textArea(classes = "form-control") {
+                                                name = "comment"
+                                            }
+                                        }
+                                    }
+                                }
+
+                                p {
+                                    submitInput(classes = "btn btn-primary") { value = "Send" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        post("/postComment") {
+            if (call.isLoggedIn()) {
+                val name = call.sessions.get<LoginSession>()!!.name
+                val params = call.receive<ValuesMap>()
+
+                val commentText = params["comment"]
+
+                transaction {
+                    Comments.insert {
+                        it[user] = name
+                        it[comment] = commentText!!
+                    }
+                }
+
+                call.respondRedirect("/comments")
+            } else call.respondRedirect("/login")
+        }
     }
 }
 
@@ -166,6 +219,6 @@ fun FlowContent.commentWidget(comment: Comment) {
     }
 }
 
-fun checkLoggedIn(call: ApplicationCall): Boolean = call.sessions.get<LoginSession>() != null //This would usually be done with a session id connected to the database
+fun ApplicationCall.isLoggedIn(): Boolean = sessions.get<LoginSession>() != null //This would usually be done with a session id connected to the database
 
 data class LoginSession(val name: String)
