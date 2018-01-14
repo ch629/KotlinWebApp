@@ -59,7 +59,7 @@ fun Application.main() {
             handle {
                 val principle = call.authentication.principal<UserIdPrincipal>()
                 call.sessions.set(LoginSession(principle!!.name))
-                call.respondRedirect("/comments") //TODO: Redirect to postComment when implemented
+                call.respondRedirect("/postComment")
             }
         }
 
@@ -67,6 +67,7 @@ fun Application.main() {
             call.respondHtml {
                 head { addStyles() }
                 body {
+                    navBar(call)
                     form(action = "/authenticate", encType = FormEncType.applicationXWwwFormUrlEncoded, method = FormMethod.post) {
                         div("form-group") {
                             p {
@@ -95,6 +96,7 @@ fun Application.main() {
                     addStyles()
                 }
                 body {
+                    navBar(call)
                     h1 { +"Sample application with HTML builders" }
                     widget {
                         +"Widget Function"
@@ -104,15 +106,13 @@ fun Application.main() {
         }
 
         get("/comments") {
-            if (!call.isLoggedIn()) println("Not Logged In")
-            else println("Logged In")
-
             call.respondHtml {
                 head {
                     title { +"Comments" }
                     addStyles()
                 }
                 body {
+                    navBar(call, 0)
                     val comments = findAllComments()
                     if (comments.isEmpty()) +"No Comments Found."
                     else div("comments") { comments.forEach { commentWidget(it) } }
@@ -130,6 +130,7 @@ fun Application.main() {
                     }
 
                     body {
+                        navBar(call, 1)
                         form(action = "/postComment", encType = FormEncType.applicationXWwwFormUrlEncoded, method = FormMethod.post) {
                             div("form-group") {
                                 p {
@@ -171,6 +172,13 @@ fun Application.main() {
 
                 call.respondRedirect("/comments")
             } else call.respondRedirect("/login")
+        }
+
+        get("/logout") {
+            if (call.isLoggedIn()) {
+                call.sessions.clear("SESSION")
+            }
+            call.respondRedirect("/comments")
         }
     }
 }
@@ -219,6 +227,35 @@ fun FlowContent.commentWidget(comment: Comment) {
     }
 }
 
+fun FlowContent.navBar(call: ApplicationCall, page: Int = -1) {
+    nav(classes = "navbar navbar-dark bg-dark") {
+        a(classes = "navbar-brand", href = "/") { +"Kotlin Comments System" }
+
+        ul(classes = "nav navbar-nav navbar-left") {
+            li(classes = "nav-item") {
+                a(classes = "nav-link ${if (page == 0) "active" else ""}", href = "/comments") {
+                    +"Comments"
+                }
+            }
+
+            li(classes = "nav-item") {
+                a(classes = "nav-link ${if (page == 1) "active" else ""}", href = "/postComment") {
+                    +"Post Comment"
+                }
+            }
+        }
+
+        ul(classes = "nav navbar-nav navbar-right") {
+            li(classes = "nav-item") {
+                val user = call.getUserName()
+                if (user.isEmpty()) a(classes = "nav-link", href = "/login") { +"Login" }
+                else a(classes = "nav-link", href = "/logout") { +user }
+            }
+        }
+    }
+}
+
 fun ApplicationCall.isLoggedIn(): Boolean = sessions.get<LoginSession>() != null //This would usually be done with a session id connected to the database
+fun ApplicationCall.getUserName(): String = sessions.get<LoginSession>()?.name ?: ""
 
 data class LoginSession(val name: String)
